@@ -1,5 +1,5 @@
 [package]
-name = "Traveller-salesman-problem"
+name = "traveller_salesman_problem"
 version = "0.1.0"
 edition = "2021"
 
