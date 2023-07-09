@@ -3,27 +3,41 @@ use std::i32::MAX;
 use std::process;
 use std::fs::File;
 use std::io::Read;
+use std::time::SystemTime;
 use regex::Regex;
 
 fn hamiltonian_cycle(graph: &Vec<Vec<i32>>) {
+
+    // Start the timer
+    let start = SystemTime::now();
     let path: Vec<usize> = hamiltonian_cycle_util(graph);
+    // Stop the timer
+    let total_time = SystemTime::now().duration_since(start).unwrap();
+    
+    // If the smallest distance is MAX, there is no solution
     let smallest_distance: i32 = get_path_distance(graph, &path) as i32;
     if smallest_distance == MAX {
         println!("There is no Solution for a Hamiltonian Cycle, exiting...");
         return;
     }
-
-    println!("Solution Exists: Following is smallest distance Hamiltonian Cycle");
+    // Print the results
+    println!("Graph: {:?}", graph);
+    println!("Solution Exists:");
     println!("Path: {:?}", path);
+    println!("Distance: {}", smallest_distance);
+    print!("Time: {}", total_time.as_secs_f64());    
 }
 
 fn hamiltonian_cycle_util(graph: &Vec<Vec<i32>>) -> Vec<usize> {
+    // Create a vector to store the path and populate it with the nodes (nodes are represented by their index)
     let n = graph.len();
     let mut path: Vec<usize> = (0..n).collect();
 
-    let mut smallest_distance = MAX;
+    // Create a variable to store the smallest distance and the path that corresponds to it
+    let mut smallest_distance: i32 = MAX;
     let mut smallest_path: Vec<usize> = Vec::new();
 
+    // Call the permute_path function
     permute_path(graph, &mut path, 1, &mut smallest_distance, &mut smallest_path);
 
     return smallest_path
@@ -36,43 +50,34 @@ fn permute_path(
     smallest_distance: &mut i32,
     smallest_path: &mut Vec<usize>,
 ) {
+    // If the position is the last one, calculate the distance and compare it to the smallest distance
     if pos == graph.len() {
         let distance = get_path_distance(graph, path);
         if distance < *smallest_distance {
             *smallest_distance = distance;
             *smallest_path = path.clone();
         }
-        print!("Path: {:?}, Distance: {}\n", path, distance)
-    }
-    for v in pos..graph.len() {
-        if is_valid(v, graph, path, pos) {
+    }else {
+        // Swap the current position with all the positions after it
+        for v in pos..graph.len() {
+            // Swap the current position with the position v (being v >= pos)
             path.swap(pos, v);
+            // Call the function recursively with the next position
             permute_path(graph, path, pos + 1, smallest_distance, smallest_path);
+            // Swap back the current position with the position v (being v >= pos)
             path.swap(pos, v);
-       }
-    }
-    
-}
-
-fn is_valid(v: usize, graph: &Vec<Vec<i32>>, path: &Vec<usize>, pos: usize) -> bool {
-    if graph[path[pos - 1]][v] == 0 {
-        return false;
-    }
-
-    for j in 0..pos {
-        if path[j] == v {
-            return false;
         }
-    }
-
-    return true
+    }    
 }
 
 fn get_path_distance(graph: &Vec<Vec<i32>>, path: &Vec<usize>) -> i32 {
+    // If the path is empty, return MAX
     let mut distance = 0;
+    // Add the distance from the first node to before last node
     for i in 0..path.len() - 1 {
         distance += graph[path[i]][path[i + 1]];
     }
+    // Add the distance from the last note to the first node to complete the cycle
     distance += graph[path[path.len() - 1]][path[0]];
     return distance
 }
@@ -119,7 +124,8 @@ fn main() {
             .collect();
         graph.push(row);
     }
-    println!("Graph: {:?}", graph);
     
-    hamiltonian_cycle(&graph)
+    // Call the hamiltonian_cycle function
+    hamiltonian_cycle(&graph);
+    
 }
