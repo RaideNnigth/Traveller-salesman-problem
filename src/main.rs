@@ -1,10 +1,81 @@
 use std::env;
+use std::i32::MAX;
 use std::process;
 use std::fs::File;
 use std::io::Read;
 use regex::Regex;
 
+fn hamiltonian_cycle(graph: &Vec<Vec<i32>>) {
+    let path: Vec<usize> = hamiltonian_cycle_util(graph);
+    let smallest_distance: i32 = get_path_distance(graph, &path) as i32;
+    if smallest_distance == MAX {
+        println!("There is no Solution for a Hamiltonian Cycle, exiting...");
+        return;
+    }
 
+    println!("Solution Exists: Following is smallest distance Hamiltonian Cycle");
+    println!("Path: {:?}", path);
+}
+
+fn hamiltonian_cycle_util(graph: &Vec<Vec<i32>>) -> Vec<usize> {
+    let n = graph.len();
+    let mut path: Vec<usize> = (0..n).collect();
+
+    let mut smallest_distance = MAX;
+    let mut smallest_path: Vec<usize> = Vec::new();
+
+    permute_path(graph, &mut path, 1, &mut smallest_distance, &mut smallest_path);
+
+    return smallest_path
+}
+
+fn permute_path(
+    graph: &Vec<Vec<i32>>,
+    path: &mut Vec<usize>,
+    pos: usize,
+    smallest_distance: &mut i32,
+    smallest_path: &mut Vec<usize>,
+) {
+    if pos == graph.len() {
+        let distance = get_path_distance(graph, path);
+        if distance < *smallest_distance {
+            *smallest_distance = distance;
+            *smallest_path = path.clone();
+        }
+        print!("Path: {:?}, Distance: {}\n", path, distance)
+    }
+    for v in pos..graph.len() {
+        if is_valid(v, graph, path, pos) {
+            path.swap(pos, v);
+            permute_path(graph, path, pos + 1, smallest_distance, smallest_path);
+            path.swap(pos, v);
+       }
+    }
+    
+}
+
+fn is_valid(v: usize, graph: &Vec<Vec<i32>>, path: &Vec<usize>, pos: usize) -> bool {
+    if graph[path[pos - 1]][v] == 0 {
+        return false;
+    }
+
+    for j in 0..pos {
+        if path[j] == v {
+            return false;
+        }
+    }
+
+    return true
+}
+
+fn get_path_distance(graph: &Vec<Vec<i32>>, path: &Vec<usize>) -> i32 {
+    let mut distance = 0;
+    for i in 0..path.len() - 1 {
+        distance += graph[path[i]][path[i + 1]];
+    }
+    distance += graph[path[path.len() - 1]][path[0]];
+    return distance
+}
 
 fn main() {
     // Getting the arguments from the command line
@@ -42,7 +113,7 @@ fn main() {
     let regex = Regex::new(r"\d+").unwrap();
     // Populate the graph
     for line in content.lines() {        
-        let mut row: Vec<i32> = regex
+        let row: Vec<i32> = regex
             .find_iter(line)
             .map(|m| m.as_str().parse::<i32>().unwrap())
             .collect();
@@ -50,5 +121,5 @@ fn main() {
     }
     println!("Graph: {:?}", graph);
     
-    //hamiltonian_cycle(&graph);
+    hamiltonian_cycle(&graph)
 }
