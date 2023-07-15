@@ -16,6 +16,7 @@ struct Edge {
     dst: i32,
     weight: i32,
 }
+
 impl Eq for Edge {}
 
 impl PartialEq for Edge {
@@ -24,7 +25,6 @@ impl PartialEq for Edge {
     }
 }
 
-// Ord is implemented to make the BinaryHeap ord by weight
 impl Ord for Edge {
     fn cmp(&self, other: &Self) -> Ordering {
         return self.weight.cmp(&other.weight)
@@ -37,7 +37,7 @@ impl PartialOrd for Edge {
     }
 }
 
-fn prim_mst(graph: &Vec<Vec<i32>>) -> &Vec<Vec<i32>> {
+fn prim_mst(graph: &Vec<Vec<i32>>) -> Vec<Vec<i32>> {
     // Adding all the edges to a vector for futher sorting
     let mut edges: Vec<Reverse<Edge>> = Vec::new();
     for i in 0..graph.len() {
@@ -84,24 +84,46 @@ fn prim_mst(graph: &Vec<Vec<i32>>) -> &Vec<Vec<i32>> {
             edges_fifo.push_front(edge);
         }
     }
-    println!("MST: {:?}", mst);
     
-    return graph
+    // Initialize the minimum spanning tree graph with zeros
+    let mut mst_graph: Vec<Vec<i32>> = vec![vec![0; graph.len()]; graph.len()];
+        
+    // Fill in the weights for the minimum spanning tree edges
+    for edge in mst {
+        mst_graph[edge.src as usize][edge.dst as usize] = edge.weight;
+    }
+    
+    return mst_graph
+}
+
+fn mst_to_multigraph(mst: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
+    let mut multigraph = mst.clone();
+    for i in 0..mst.len() {
+        for j in 0..mst.len() {
+            if mst[i][j] != 0 {
+                // Add duplicate edge
+                multigraph[j][i] = mst[i][j];
+            }
+        }
+    }
+    return multigraph
 }
 
 fn solve_tsp(graph: &Vec<Vec<i32>>) {
 
     // Start the timer
     let start = SystemTime::now();
+    let mut mst:Vec<Vec<i32>> = prim_mst(graph);
+    let mut multigraph:Vec<Vec<i32>> = mst_to_multigraph(mst);
+        
+    
     let path: Vec<usize> = Vec::new(); //hamiltonian_cycle(graph);
     // Stop the timer
-    let total_time = SystemTime::now().duration_since(start).unwrap();
+    let total_time = SystemTime::now().duration_since(start).unwrap();    
     
-    prim_mst(graph);
-    
-    
-    // If the smallest distance is MAX, there is no solution
     /*
+    // If the smallest distance is MAX, there is no solution
+
     let smallest_distance: i32 = get_path_distance(graph, &path) as i32;
     if smallest_distance == MAX {
         println!("There is no Solution for a Hamiltonian Cycle, exiting...");
@@ -114,7 +136,6 @@ fn solve_tsp(graph: &Vec<Vec<i32>>) {
     println!("Distance: {}", smallest_distance);
     print!("Time: {}", total_time.as_secs_f64());    
     */
-    
 }
 
 fn get_path_distance(graph: &Vec<Vec<i32>>, path: &Vec<usize>) -> i32 {
