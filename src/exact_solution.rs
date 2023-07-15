@@ -1,107 +1,20 @@
-
 use std::env;
-use std::process;
 use std::i32::MAX;
-use std::time::SystemTime;
+use std::process;
 use std::fs::File;
 use std::io::Read;
-use std::collections::VecDeque;
-use std::cmp::Ordering;
+use std::time::SystemTime;
 use regex::Regex;
-use std::cmp::Reverse;
-
-#[derive(Clone, Debug, Copy)]
-struct Edge {
-    src: i32,
-    dst: i32,
-    weight: i32,
-}
-impl Eq for Edge {}
-
-impl PartialEq for Edge {
-    fn eq(&self, other: &Self) -> bool {
-        self.weight == other.weight
-    }
-}
-
-// Ord is implemented to make the BinaryHeap ord by weight
-impl Ord for Edge {
-    fn cmp(&self, other: &Self) -> Ordering {
-        return self.weight.cmp(&other.weight)
-    }
-}
-
-impl PartialOrd for Edge {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.weight.cmp(&other.weight))
-    }
-}
-
-fn prim_mst(graph: &Vec<Vec<i32>>) -> &Vec<Vec<i32>> {
-    // Adding all the edges to a vector for futher sorting
-    let mut edges: Vec<Reverse<Edge>> = Vec::new();
-    for i in 0..graph.len() {
-        for j in (i+1)..graph.len() {            
-            if graph[i][j] != 0 {
-                edges.push(Reverse(Edge {
-                    src: i as i32,
-                    dst: j as i32,
-                    weight: graph[i][j],
-                }));
-            }
-        }
-    }
-    // Sorting it by descending order cause will be used as stack later on
-    edges.sort();
-    
-    // Creating a FIFO queue from the sorted edges
-    let mut edges_fifo: VecDeque<Reverse<Edge>> = VecDeque::from(edges.clone());
-    let mut visited: Vec<i32> = Vec::new();
-    let mut mst: Vec<Edge> = Vec::new();
-    
-    // Adding the frist edge to the MST
-    let first_edge = edges_fifo.pop_back().unwrap();
-    mst.push(first_edge.0);
-    visited.push(first_edge.0.src);
-    visited.push(first_edge.0.dst);
-    
-    // While the MST is not complete
-    while mst.len() < graph.len() - 1 {
-        let edge = edges_fifo.pop_back().unwrap();
-        if visited.contains(&edge.0.src) && !visited.contains(&edge.0.dst) {
-            visited.push(edge.0.dst);
-            mst.push(edge.0);
-            let mut temp_vec: Vec<Reverse<Edge>> = edges_fifo.clone().into();
-            temp_vec.sort();
-            edges_fifo = VecDeque::from(temp_vec);
-        } else if !visited.contains(&edge.0.src) && visited.contains(&edge.0.dst) {
-            visited.push(edge.0.src);
-            mst.push(edge.0);
-            let mut temp_vec: Vec<Reverse<Edge>> = edges_fifo.clone().into();
-            temp_vec.sort();
-            edges_fifo = VecDeque::from(temp_vec);
-        } else {
-            edges_fifo.push_front(edge);
-        }
-    }
-    println!("MST: {:?}", mst);
-    
-    return graph
-}
 
 fn solve_tsp(graph: &Vec<Vec<i32>>) {
 
     // Start the timer
     let start = SystemTime::now();
-    let path: Vec<usize> = Vec::new(); //hamiltonian_cycle(graph);
+    let path: Vec<usize> = hamiltonian_cycle(graph);
     // Stop the timer
     let total_time = SystemTime::now().duration_since(start).unwrap();
     
-    prim_mst(graph);
-    
-    
     // If the smallest distance is MAX, there is no solution
-    /*
     let smallest_distance: i32 = get_path_distance(graph, &path) as i32;
     if smallest_distance == MAX {
         println!("There is no Solution for a Hamiltonian Cycle, exiting...");
@@ -113,8 +26,48 @@ fn solve_tsp(graph: &Vec<Vec<i32>>) {
     println!("Path: {:?}", path);
     println!("Distance: {}", smallest_distance);
     print!("Time: {}", total_time.as_secs_f64());    
-    */
-    
+}
+
+fn hamiltonian_cycle(graph: &Vec<Vec<i32>>) -> Vec<usize> {
+    // Create a vector to store the path and populate it with the nodes (nodes are represented by their index)
+    let n = graph.len();
+    let mut path: Vec<usize> = (0..n).collect();
+
+    // Create a variable to store the smallest distance and the path that corresponds to it
+    let mut smallest_distance: i32 = MAX;
+    let mut smallest_path: Vec<usize> = Vec::new();
+
+    // Call the permute_path function
+    permute_path(graph, &mut path, 1, &mut smallest_distance, &mut smallest_path);
+
+    return smallest_path
+}
+
+fn permute_path(
+    graph: &Vec<Vec<i32>>,
+    path: &mut Vec<usize>,
+    pos: usize,
+    smallest_distance: &mut i32,
+    smallest_path: &mut Vec<usize>,
+) {
+    // If the position is the last one, calculate the distance and compare it to the smallest distance
+    if pos == graph.len() {
+        let distance = get_path_distance(graph, path);
+        if distance < *smallest_distance {
+            *smallest_distance = distance;
+            *smallest_path = path.clone();
+        }
+    }else {
+        // Swap the current position with all the positions after it
+        for v in pos..graph.len() {
+            // Swap the current position with the position v (being v >= pos)
+            path.swap(pos, v);
+            // Call the function recursively with the next position
+            permute_path(graph, path, pos + 1, smallest_distance, smallest_path);
+            // Swap back the current position with the position v (being v >= pos)
+            path.swap(pos, v);
+        }
+    }    
 }
 
 fn get_path_distance(graph: &Vec<Vec<i32>>, path: &Vec<usize>) -> i32 {
