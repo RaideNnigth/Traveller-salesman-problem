@@ -67,16 +67,16 @@ fn prim_mst(graph: &Vec<Vec<i32>>) -> Vec<Vec<i32>> {
     // While the MST is not complete
     while mst.len() < graph.len() - 1 {
         let edge = edges_fifo.pop_back().unwrap();
-        if visited.contains(&edge.0.src) && !visited.contains(&edge.0.dst) ||
-            !visited.contains(&edge.0.src) && visited.contains(&edge.0.dst) {
+        if visited.contains(&edge.0.src) && !visited.contains(&edge.0.dst)
+            || !visited.contains(&edge.0.src) && visited.contains(&edge.0.dst)
+        {
             visited.insert(edge.0.dst);
             visited.insert(edge.0.src);
             mst.push(edge.0);
-            
+
             let mut temp_vec: Vec<Reverse<Edge>> = edges_fifo.clone().into();
             temp_vec.sort();
             edges_fifo = VecDeque::from(temp_vec);
-            
         } else {
             edges_fifo.push_front(edge);
         }
@@ -94,7 +94,9 @@ fn prim_mst(graph: &Vec<Vec<i32>>) -> Vec<Vec<i32>> {
 }
 
 fn mst_to_multigraph(mst: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
+    // Create a copy of the MST
     let mut multigraph = mst.clone();
+    // For each edge in the MST, add a duplicate edge in the opposite direction
     for i in 0..mst.len() {
         for j in 0..mst.len() {
             if mst[i][j] != 0 {
@@ -103,6 +105,7 @@ fn mst_to_multigraph(mst: Vec<Vec<i32>>) -> Vec<Vec<i32>> {
             }
         }
     }
+    // Return the multigraph
     return multigraph;
 }
 
@@ -111,19 +114,26 @@ fn get_all_children_verteces(
     visited_nodes: &mut Vec<i32>,
     graph: &Vec<Vec<i32>>,
 ) -> VecDeque<i32> {
+    // Create a vector to store the childrens
     let mut childrens: VecDeque<i32> = VecDeque::new();
+    // For each node in the graph, if the node is a children of the dad and it is not visited, add it to the childrens vector
     for i in 0..graph.len() {
         if graph[dad as usize][i] != 0 && !visited_nodes.contains(&(i as i32)) {
             childrens.push_back(i as i32);
         }
     }
+    // Return the childrens vector
     return childrens;
 }
 
 fn get_approximative_path(u: i32, multigraph: &Vec<Vec<i32>>, visiteds: &mut Vec<i32>) -> Vec<i32> {
+    // Get all the childrens of the current node
     let mut childrens: VecDeque<i32> = get_all_children_verteces(u, visiteds, &multigraph);
+    // Add the current node to the visiteds
     visiteds.push(u);
+    // Create a vector to store the path until now
     let mut path: Vec<i32> = Vec::new();
+    // For each children, get the path and add it to the current path
     while !childrens.is_empty() {
         let current_children: i32 = childrens.pop_back().unwrap();
         path.append(&mut get_approximative_path(
@@ -132,49 +142,34 @@ fn get_approximative_path(u: i32, multigraph: &Vec<Vec<i32>>, visiteds: &mut Vec
             &mut visiteds.clone(),
         ));
     }
+    // Add the current node to the path after there is no more childrens
     path.push(u);
+    // return the path
     return path;
 }
 
 fn solve_tsp(graph: &Vec<Vec<i32>>) {
-    // Start the timer
+    // --------- Start the timer ----------------------------------------------------------
     let start = SystemTime::now();
-    //---------- Get MST and Multigraph of MST -----------
-    let mut mst: Vec<Vec<i32>> = prim_mst(graph);
-    for i in 0..mst.len() {
-        println!("MST: {:?}", mst[i]);
-    }
-    let mut multigraph: Vec<Vec<i32>> = mst_to_multigraph(mst);
-    for i in 0..multigraph.len() {
-        println!("Multigraph: {:?}", multigraph[i]);
-    }
-    //---------- Get Approximative Path ------------------
+    //---------- Get MST and Multigraph of MST --------------------------------------------
+    let mst: Vec<Vec<i32>> = prim_mst(graph);
+    let multigraph: Vec<Vec<i32>> = mst_to_multigraph(mst);
+    //---------- Get Approximative Path ---------------------------------------------------
     let mut visiteds: Vec<i32> = Vec::new();
     let path: Vec<i32> = get_approximative_path(0, &multigraph, &mut visiteds);
-    //---------- Inverte path and add source node to it -------------------
+    //---------- Inverte path and add source node to it -----------------------------------
     let mut path: Vec<i32> = path.into_iter().rev().collect();
     path.push(0);
-    // --------- Stop the timer -------------------
+    // --------- Stop the timer -----------------------------------------------------------
     let total_time = SystemTime::now().duration_since(start).unwrap();
-    println!("Total time: {}", total_time.as_secs_f64());
+    //---------- Print the results --------------------------------------------------------
+    println!("----------Aproximative Solution-----------");
+    println!(
+        "Total time of execution: {} ",
+        &total_time.as_secs_f64().to_string()
+    );
     println!("Path: {:?}", path);
-    println!("Path distance: {}", get_path_distance(graph, &path))
-
-    /*
-    // If the smallest distance is MAX, there is no solution
-
-    let smallest_distance: i32 = get_path_distance(graph, &path) as i32;
-    if smallest_distance == MAX {
-        println!("There is no Solution for a Hamiltonian Cycle, exiting...");
-        return;
-    }
-    // Print the results
-    println!("Graph: {:?}", graph);
-    println!("Solution Exists:");
-    println!("Path: {:?}", path);
-    println!("Distance: {}", smallest_distance);
-    print!("Time: {}", total_time.as_secs_f64());
-    */
+    println!("Total distance: {}", get_path_distance(graph, &path));
 }
 
 fn get_path_distance(graph: &Vec<Vec<i32>>, path: &Vec<i32>) -> i32 {
@@ -184,8 +179,6 @@ fn get_path_distance(graph: &Vec<Vec<i32>>, path: &Vec<i32>) -> i32 {
     for i in 0..path.len() - 1 {
         distance += graph[path[i] as usize][path[i + 1] as usize];
     }
-    // Add the distance from the last note to the first node to complete the cycle
-    distance += graph[path[path.len() - 1] as usize][path[0] as usize];
     return distance;
 }
 
